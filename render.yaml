@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: photon-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: MONGODB_URI
+        value: mongodb+srv://pergishazel_db_user:6hgkaPrWF9Q5wPpF@photoncluster.wa6xetd.mongodb.net/photon?retryWrites=true&w=majority
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://your-frontend-url.onrender.com
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://photon-backend.onrender.com/auth/callback
+    healthCheckPath: /health
+    autoDeploy: true

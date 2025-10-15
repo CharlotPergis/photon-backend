@@ -1,0 +1,6 @@
+venv/
+ocr-prototype-project-*.json
+temp_uploaded_image.jpg
+__pycache__/
+.venv/
+.env
