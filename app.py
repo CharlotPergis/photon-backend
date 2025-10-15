@@ -26,6 +26,7 @@ from google.auth.transport import requests as grequests
 from google.cloud import vision
 from openai import OpenAI
 from bson import ObjectId
+import os
 
 # ============================================================
 # ENVIRONMENT SETUP
@@ -48,7 +49,7 @@ bcrypt = Bcrypt(app)
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "photon-secret-key")
 jwt_manager = JWTManager(app)
 
-client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ============================================================
 # IMAGE ANALYSIS SETUP (Using PIL instead of OpenCV for Python 3.13 compatibility)
