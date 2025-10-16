@@ -103,6 +103,12 @@ try:
     chats_col = db["chats"]
     messages_col = db["messages"]
 
+    try:
+        db.command("ping")
+        print(f"✅ MongoDB connected to: {db.name}")
+    except Exception as e:
+        print(f"❌ MongoDB connection failed: {e}")
+
     # 🚀 Indexes for performance
     chats_col.create_index([("user_email", 1), ("updatedAt", -1)])
     messages_col.create_index([("chat_id", 1), ("timestamp", 1)])
