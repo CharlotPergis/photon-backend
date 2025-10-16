@@ -78,7 +78,7 @@ try:
     mongo_client = MongoClient(MONGODB_URI)
 
     # Use the default database defined in the URI
-    db = mongo_client.get_default_database()
+    db = mongo_client.get_default_database()  # This automatically uses the DB in your URI
 
     # 🗃️ Collections
     users_col = db["users"]
