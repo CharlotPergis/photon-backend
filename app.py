@@ -27,6 +27,7 @@ from google.cloud import vision
 from openai import OpenAI
 from bson import ObjectId
 from flask_socketio import SocketIO
+from pymongo import MongoClient
 import os
 
 # ============================================================
@@ -94,7 +95,7 @@ try:
     if not MONGODB_URI:
         raise ValueError("No MongoDB URI provided")
 
-    mongo_client = MongoClient(MONGODB_URI)
+    mongo_client = MongoClient(MONGODB_URI, tls=True, tlsAllowInvalidCertificates=False)
     db = mongo_client.get_default_database()  # uses 'photon' from URI
 
     # 🗃️ Collections
