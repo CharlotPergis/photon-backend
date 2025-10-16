@@ -81,8 +81,8 @@ print("🔧 Setting up MongoDB database...")
 try:
     # ✅ Prefer Atlas URI, fallback to local for dev
    MONGODB_URI = os.getenv("MONGODB_URI")
-    if not MONGODB_URI:
-        raise RuntimeError("❌ MONGODB_URI not set")
+   if not MONGODB_URI:
+    raise RuntimeError("❌ MONGODB_URI not set")
 
     mongo_client = MongoClient(MONGODB_URI)
     db = mongo_client.get_default_database()  # uses 'photon' from URI
