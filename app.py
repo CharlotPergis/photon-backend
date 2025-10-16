@@ -26,6 +26,7 @@ from google.auth.transport import requests as grequests
 from google.cloud import vision
 from openai import OpenAI
 from bson import ObjectId
+from flask_socketio import SocketIO
 import os
 
 # ============================================================
@@ -50,6 +51,7 @@ openai_client = OpenAI(api_key=OPENAI_API_KEY)
 # ============================================================
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
 CORS(app, origins=["*"])
 bcrypt = Bcrypt(app)
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "photon-secret-key")
@@ -1457,4 +1459,5 @@ def home():
 # ============================================================
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    socketio.run(app, host="0.0.0.0", port=port, debug=True)
