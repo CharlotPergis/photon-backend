@@ -33,11 +33,17 @@ import os
 # ============================================================
 
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise RuntimeError("❌ OPENAI_API_KEY is not set in environment variables")
+
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:5000/auth/callback")
 FRONTEND_URL = os.getenv("CORS_ORIGIN", "http://localhost:3000")
+
+# ✅ Initialize OpenAI client
+openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 # ============================================================
 # INITIALIZATION
