@@ -80,11 +80,12 @@ print("🔧 Setting up MongoDB database...")
 
 try:
     # ✅ Prefer Atlas URI, fallback to local for dev
-    MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/photon")
-    mongo_client = MongoClient(MONGODB_URI)
+   MONGODB_URI = os.getenv("MONGODB_URI")
+    if not MONGODB_URI:
+        raise RuntimeError("❌ MONGODB_URI not set")
 
-    # Use the default database defined in the URI
-    db = mongo_client.get_default_database()  # This automatically uses the DB in your URI
+    mongo_client = MongoClient(MONGODB_URI)
+    db = mongo_client.get_default_database()  # uses 'photon' from URI
 
     # 🗃️ Collections
     users_col = db["users"]
