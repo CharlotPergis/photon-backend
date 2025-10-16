@@ -51,8 +51,15 @@ openai_client = OpenAI(api_key=OPENAI_API_KEY)
 # ============================================================
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
-CORS(app, origins=["*"])
+CORS(app, origins="https://photon-frontend.onrender.com")  # allow your frontend domain
+socketio = SocketIO(app, cors_allowed_origins="https://photon-frontend.onrender.com")
+
+# Example Socket.IO event
+@socketio.on("message")
+def handle_message(data):
+    print("Received message:", data)
+    socketio.emit("message", {"response": "Got it!"})
+    
 bcrypt = Bcrypt(app)
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "photon-secret-key")
 jwt_manager = JWTManager(app)
@@ -1459,5 +1466,4 @@ def home():
 # ============================================================
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    socketio.run(app, host="0.0.0.0", port=port, debug=True)
+    socketio.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
