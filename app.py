@@ -71,42 +71,43 @@ except ImportError as e:
 # ============================================================
 
 print("🔧 Setting up MongoDB database...")
+
 try:
-    # MongoDB connection
+    # ✅ Prefer Railway/Atlas URI, fallback to local for dev
     MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/photon")
     mongo_client = MongoClient(MONGODB_URI)
-    db = mongo_client.get_database()
-    
-    # Collections
-    users_col = db.users
-    chats_col = db.chats
-    messages_col = db.messages
-    
-    # Create indexes for better performance
+
+    # If using Atlas with a specific database in the URI (like `.../photon`), this will get that database
+    db = mongo_client.get_database() if mongo_client.get_database().name else mongo_client["photon"]
+
+    # 🗃️ Collections
+    users_col = db["users"]
+    chats_col = db["chats"]
+    messages_col = db["messages"]
+
+    # 🚀 Indexes for performance
     chats_col.create_index([("user_email", 1), ("updatedAt", -1)])
     messages_col.create_index([("chat_id", 1), ("timestamp", 1)])
     users_col.create_index([("email", 1)], unique=True)
-    
-    print("✅ MongoDB initialized successfully")
-    
-    # Test the connection
-    db.command('ping')
-    print("✅ MongoDB connection test passed")
-    
+
+    # 🧪 Test connection
+    db.command("ping")
+    print(f"✅ MongoDB connected to: {db.name}")
+
 except Exception as e:
     print(f"❌ MongoDB connection failed: {e}")
-    print("⚠️ Falling back to in-memory storage")
-    
-    # Fallback to in-memory storage
+    print("⚠️ Falling back to in-memory storage...")
+
+    # 🧠 In-memory fallback (if MongoDB is not available)
     class MemoryStorage:
         def __init__(self):
             self.data = {'chats': [], 'users': [], 'messages': []}
             self.chat_counter = 0
             self.message_counter = 0
-        
+
         def __getitem__(self, name):
             return self
-        
+
         def insert_one(self, document):
             if 'chat' in str(document).lower():
                 self.chat_counter += 1
@@ -125,60 +126,53 @@ except Exception as e:
                 document['_id'] = doc_id
                 self.data['users'].append(document)
                 return type('obj', (object,), {'inserted_id': doc_id})()
-        
+
         def find_one(self, query=None):
             if query and 'email' in query:
-                for user in self.data['users']:
-                    if user.get('email') == query['email']:
-                        return user
-            elif query and '_id' in query:
-                # Search in all collections
-                for chat in self.data['chats']:
-                    if chat.get('_id') == query['_id']:
-                        return chat
-                for message in self.data['messages']:
-                    if message.get('_id') == query['_id']:
-                        return message
+                return next((u for u in self.data['users'] if u.get('email') == query['email']), None)
+            if query and '_id' in query:
+                for coll in ['chats', 'messages']:
+                    for doc in self.data[coll]:
+                        if doc.get('_id') == query['_id']:
+                            return doc
             return None
-        
+
         def find(self, query=None):
             if query and 'user_email' in query:
-                return [chat for chat in self.data['chats'] if chat.get('user_email') == query['user_email']]
-            elif query and 'chat_id' in query:
-                return [msg for msg in self.data['messages'] if msg.get('chat_id') == query['chat_id']]
+                return [c for c in self.data['chats'] if c.get('user_email') == query['user_email']]
+            if query and 'chat_id' in query:
+                return [m for m in self.data['messages'] if m.get('chat_id') == query['chat_id']]
             return []
-        
+
         def update_one(self, query, update):
             if query and '_id' in query:
-                # Find and update document
                 for chat in self.data['chats']:
                     if chat.get('_id') == query['_id']:
                         if '$set' in update:
                             chat.update(update['$set'])
                         return type('obj', (object,), {'modified_count': 1})()
             return type('obj', (object,), {'modified_count': 0})()
-        
+
         def delete_one(self, query):
             if query and '_id' in query:
-                # Remove from chats
-                self.data['chats'] = [chat for chat in self.data['chats'] if chat.get('_id') != query['_id']]
-                # Remove associated messages
-                self.data['messages'] = [msg for msg in self.data['messages'] if msg.get('chat_id') != query['_id']]
+                self.data['chats'] = [c for c in self.data['chats'] if c.get('_id') != query['_id']]
+                self.data['messages'] = [m for m in self.data['messages'] if m.get('chat_id') != query['_id']]
             return type('obj', (object,), {'deleted_count': 1})()
-        
+
         def delete_many(self, query):
             if query and 'chat_id' in query:
-                initial_count = len(self.data['messages'])
-                self.data['messages'] = [msg for msg in self.data['messages'] if msg.get('chat_id') != query['chat_id']]
-                deleted_count = initial_count - len(self.data['messages'])
-                return type('obj', (object,), {'deleted_count': deleted_count})()
+                before = len(self.data['messages'])
+                self.data['messages'] = [m for m in self.data['messages'] if m.get('chat_id') != query['chat_id']]
+                after = len(self.data['messages'])
+                return type('obj', (object,), {'deleted_count': before - after})()
             return type('obj', (object,), {'deleted_count': 0})()
-        
+
         def count_documents(self, query):
             if query and 'chat_id' in query:
-                return len([msg for msg in self.data['messages'] if msg.get('chat_id') == query['chat_id']])
+                return len([m for m in self.data['messages'] if m.get('chat_id') == query['chat_id']])
             return 0
-    
+
+    # 🧠 Fallback assignments
     db = MemoryStorage()
     users_col = db
     chats_col = db
@@ -692,7 +686,14 @@ def google_callback():
         if "id_token" not in tokens:
             return jsonify({"error": "Invalid Google token"}), 400
 
-        idinfo = id_token.verify_oauth2_token(tokens["id_token"], grequests.Request(), GOOGLE_CLIENT_ID)
+        # FIXED: Added clock_skew_in_seconds parameter to handle clock synchronization issues
+        idinfo = id_token.verify_oauth2_token(
+            tokens["id_token"], 
+            grequests.Request(), 
+            GOOGLE_CLIENT_ID,
+            clock_skew_in_seconds=30  # Allow 30 seconds of clock difference
+        )
+        
         email = idinfo.get("email")
         name = idinfo.get("name", "Photon User")
         picture = idinfo.get("picture", "")
