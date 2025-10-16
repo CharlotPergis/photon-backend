@@ -73,12 +73,12 @@ except ImportError as e:
 print("🔧 Setting up MongoDB database...")
 
 try:
-    # ✅ Prefer Railway/Atlas URI, fallback to local for dev
+    # ✅ Prefer Atlas URI, fallback to local for dev
     MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/photon")
     mongo_client = MongoClient(MONGODB_URI)
 
-    # If using Atlas with a specific database in the URI (like `.../photon`), this will get that database
-    db = mongo_client.get_database() if mongo_client.get_database().name else mongo_client["photon"]
+    # Use the default database defined in the URI
+    db = mongo_client.get_default_database()
 
     # 🗃️ Collections
     users_col = db["users"]
@@ -98,7 +98,6 @@ except Exception as e:
     print(f"❌ MongoDB connection failed: {e}")
     print("⚠️ Falling back to in-memory storage...")
 
-    # 🧠 In-memory fallback (if MongoDB is not available)
     class MemoryStorage:
         def __init__(self):
             self.data = {'chats': [], 'users': [], 'messages': []}
@@ -172,7 +171,6 @@ except Exception as e:
                 return len([m for m in self.data['messages'] if m.get('chat_id') == query['chat_id']])
             return 0
 
-    # 🧠 Fallback assignments
     db = MemoryStorage()
     users_col = db
     chats_col = db
@@ -183,8 +181,18 @@ except Exception as e:
 # ============================================================
 
 try:
-    vision_client = vision.ImageAnnotatorClient()
-    print("✅ Google Vision initialized")
+    # 🔑 Make sure the credentials environment variable is set
+    creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    if not creds_path or not os.path.exists(creds_path):
+        raise FileNotFoundError(
+            f"Google credentials not found at {creds_path}. "
+            "Set the GOOGLE_APPLICATION_CREDENTIALS environment variable."
+        )
+    
+    # Initialize the client with the credentials
+    vision_client = vision.ImageAnnotatorClient.from_service_account_file(creds_path)
+    print("✅ Google Vision initialized successfully")
+
 except Exception as e:
     print("❌ Failed to initialize Google Vision:", e)
 
